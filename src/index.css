@@ -1,0 +1,12 @@
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
