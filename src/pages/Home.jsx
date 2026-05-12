@@ -14,6 +14,12 @@ import {
   getSocialLinks
 } from '../services/api';
 
+const getMediaUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  return `https://offcon-backend.onrender.com${path.startsWith('/') ? path : '/' + path}`;
+};
+
 const Home = () => {
   const { lang, setLang } = useLanguage();
   const token = localStorage.getItem('access_token');
@@ -32,18 +38,12 @@ const Home = () => {
   const [showModal, setShowModal] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Отключаем авто-восстановление браузера
   useEffect(() => {
-    if ('scrollRestoration' in history) {
-      history.scrollRestoration = 'manual';
-    }
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   }, []);
 
-  // Сохраняем позицию скролла (включая размонтирование)
   useEffect(() => {
-    const saveScroll = () => {
-      sessionStorage.setItem(`scroll_${location.pathname}`, window.scrollY);
-    };
+    const saveScroll = () => sessionStorage.setItem(`scroll_${location.pathname}`, window.scrollY);
     window.addEventListener('scroll', saveScroll);
     return () => {
       saveScroll();
@@ -51,23 +51,16 @@ const Home = () => {
     };
   }, [location.pathname]);
 
-  // Восстанавливаем скролл после загрузки данных
   useEffect(() => {
     if (dataLoaded) {
       const saved = sessionStorage.getItem(`scroll_${location.pathname}`);
       if (saved !== null) {
         const targetY = parseInt(saved, 10);
-        const performScroll = () => {
+        requestAnimationFrame(() => setTimeout(() => {
           const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-          const safeY = Math.min(targetY, maxScroll);
-          window.scrollTo({ top: safeY, behavior: 'instant' });
-        };
-        requestAnimationFrame(() => {
-          setTimeout(performScroll, 150);
-        });
-      } else {
-        window.scrollTo(0, 0);
-      }
+          window.scrollTo({ top: Math.min(targetY, maxScroll), behavior: 'instant' });
+        }, 100));
+      } else window.scrollTo(0, 0);
     }
   }, [dataLoaded, location.pathname]);
 
@@ -133,7 +126,6 @@ const Home = () => {
   const t = (obj) => obj?.[lang] || obj?.ru || '';
   const tSimple = (obj) => obj?.[lang] || obj?.ru || '';
 
-  // ========== УНИФИЦИРОВАННАЯ ФОРМА ЗАКАЗА ==========
   const OrderForm = ({ isModal = false }) => {
     const [nameValue, setNameValue] = useState('');
     const [phoneValue, setPhoneValue] = useState('');
@@ -266,38 +258,18 @@ const Home = () => {
 
         <div className="flex flex-wrap gap-5 items-center">
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name={isModal ? "modal-contact_method" : "contact_method"}
-              value="telegram"
-              checked={contactMethod === 'telegram'}
-              onChange={() => setContactMethod('telegram')}
-              className="w-[20px] h-[20px] accent-[#808184]"
-            />
+            <input type="radio" name={isModal ? "modal-contact_method" : "contact_method"} value="telegram" checked={contactMethod === 'telegram'} onChange={() => setContactMethod('telegram')} className="w-[20px] h-[20px] accent-[#808184]" />
             <span className="text-[16px] lg:text-[20px] text-[#808184]">{tSimple(translations.formTelegram)}</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name={isModal ? "modal-contact_method" : "contact_method"}
-              value="call"
-              checked={contactMethod === 'call'}
-              onChange={() => setContactMethod('call')}
-              className="w-[20px] h-[20px] accent-[#808184]"
-            />
+            <input type="radio" name={isModal ? "modal-contact_method" : "contact_method"} value="call" checked={contactMethod === 'call'} onChange={() => setContactMethod('call')} className="w-[20px] h-[20px] accent-[#808184]" />
             <span className="text-[16px] lg:text-[20px] text-[#808184]">{tSimple(translations.formCall)}</span>
           </label>
         </div>
 
         <div>
           <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={consentValue}
-              onChange={(e) => setConsentValue(e.target.checked)}
-              onBlur={() => handleFieldBlur('consent', consentValue)}
-              className="w-[20px] h-[20px] accent-[#808184]"
-            />
+            <input type="checkbox" checked={consentValue} onChange={(e) => setConsentValue(e.target.checked)} onBlur={() => handleFieldBlur('consent', consentValue)} className="w-[20px] h-[20px] accent-[#808184]" />
             <span className="text-[16px] lg:text-[20px] text-[#808184]">
               {tSimple(translations.formConsent)} <Link to="/privacy" className="underline hover:opacity-80">{tSimple(translations.formPrivacy)}</Link>
             </span>
@@ -306,11 +278,7 @@ const Home = () => {
         </div>
 
         <div className="flex justify-center">
-          <button
-            type="submit"
-            disabled={localStatus === 'sending'}
-            className="w-full max-w-[277px] h-[35px] lg:h-[50px] bg-[#353535] rounded-[5px] text-white text-[16px] lg:text-[24px] font-normal hover:underline transition disabled:opacity-50 focus:outline-none focus:ring-0"
-          >
+          <button type="submit" disabled={localStatus === 'sending'} className="w-full max-w-[277px] h-[35px] lg:h-[50px] bg-[#353535] rounded-[5px] text-white text-[16px] lg:text-[24px] font-normal hover:underline transition disabled:opacity-50 focus:outline-none focus:ring-0">
             {localStatus === 'sending' ? tSimple(translations.formSending) : tSimple(translations.formSubmit)}
           </button>
         </div>
@@ -318,7 +286,6 @@ const Home = () => {
     );
   };
 
-  // ========== ЗАГРУЗКА ДАННЫХ ==========
   const loadProjects = async () => {
     try {
       const params = {};
@@ -362,10 +329,6 @@ const Home = () => {
   }, [filters]);
 
   const openOrderModal = () => setShowOrderModal(true);
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return '';
-    return imagePath.startsWith('http') ? imagePath : `/${imagePath}`;
-  };
 
   return (
     <Layout
@@ -380,7 +343,7 @@ const Home = () => {
       {/* Баннер */}
       <div className="pt-[60px] lg:pt-[100px] w-full">
         <div className="relative w-full h-[150px] lg:h-[330px] overflow-hidden">
-          <img src={settings?.banner_image || '/banner.jpg'} alt="Баннер" className="w-full h-full object-cover" />
+          <img src={getMediaUrl(settings?.banner_image || '/banner.jpg')} alt="Баннер" className="w-full h-full object-cover" />
           <div className="absolute inset-0 flex flex-col justify-center items-center bg-white/60 px-4 text-center">
             <h1 className="text-black text-[20px] lg:text-[32px] font-bold">
               {t({ ru: settings?.banner_title_ru, en: settings?.banner_title_en }) || t(translations.bannerTitle)}
@@ -394,50 +357,44 @@ const Home = () => {
 
       {/* Кнопки под баннером */}
       <div className="flex justify-center gap-5 mt-5 mb-10 lg:mb-15 px-5">
-        <button 
-          onClick={openOrderModal} 
-          className="w-full lg:w-[277px] h-[35px] lg:h-[50px] bg-transparent border border-[#353535] rounded-[5px] text-[#353535] text-[16px] lg:text-[24px] transition hover:shadow-md hover:underline focus:outline-none focus:ring-0"
-        >
+        <button onClick={openOrderModal} className="w-full lg:w-[277px] h-[35px] lg:h-[50px] bg-transparent border border-[#353535] rounded-[5px] text-[#353535] text-[16px] lg:text-[24px] transition hover:shadow-md hover:underline focus:outline-none focus:ring-0">
           {t(translations.bannerBtnOrder)}
         </button>
-        <Link 
-          to="/projects" 
-          className="w-full lg:w-[277px] h-[35px] lg:h-[50px] bg-transparent border border-[#353535] rounded-[5px] text-[#353535] text-[16px] lg:text-[24px] transition hover:shadow-md hover:underline flex items-center justify-center focus:outline-none focus:ring-0"
-        >
+        <Link to="/projects" className="w-full lg:w-[277px] h-[35px] lg:h-[50px] bg-transparent border border-[#353535] rounded-[5px] text-[#353535] text-[16px] lg:text-[24px] transition hover:shadow-md hover:underline flex items-center justify-center focus:outline-none focus:ring-0">
           {t(translations.bannerBtnInteriors)}
         </Link>
       </div>
 
-{/* О бюро */}
-<section id="about" className="w-full py-10 lg:py-20 relative">
-  <div className="relative flex justify-start lg:justify-center mb-5 lg:mb-10">
-    <h2 className="text-[20px] lg:text-[32px] font-light text-black ml-5 lg:ml-0">{t(translations.aboutTitle)}</h2>
-    <Link to="/about" className="absolute right-5 top-1/2 -translate-y-1/2 text-[14px] lg:text-[16px] font-bold italic text-black hover:underline whitespace-nowrap">
-      {t(translations.aboutMore)}
-    </Link>
-  </div>
-  <div className="flex flex-row gap-4 lg:gap-5 items-start px-5 xl:px-[100px]">
-    <div className="flex-shrink-0">
-      <img src={aboutSettings?.image || '/team/fedor.jpg'} alt="Фёдор Ращевский" className="w-[105px] h-[125px] lg:w-[220px] lg:h-[240px] object-cover rounded-[5px]" />
-    </div>
-    <div className="flex-1 flex flex-col gap-[5px]">
-      <p className="text-[16px] lg:text-[20px] font-bold text-black leading-none">
-        {t({ ru: aboutSettings?.name_ru, en: aboutSettings?.name_en }) || t(translations.aboutDefaultName)}
-      </p>
-      <p className="text-[16px] lg:text-[20px] font-normal text-black">
-        {t({ ru: aboutSettings?.position_ru, en: aboutSettings?.position_en }) || t(translations.aboutDefaultPosition)}
-      </p>
-      <p className="text-[16px] lg:text-[20px] italic text-black">
-        {t({ ru: aboutSettings?.quote_ru, en: aboutSettings?.quote_en }) || t(translations.aboutDefaultQuote)}
-      </p>
-      <div className="mt-[10px] whitespace-pre-wrap">
-        <p className="text-[16px] lg:text-[20px] font-normal text-black">
-          {t({ ru: aboutSettings?.text_ru, en: aboutSettings?.text_en }) || t(translations.aboutDefaultText)}
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
+      {/* О бюро */}
+      <section id="about" className="w-full py-10 lg:py-20 relative">
+        <div className="relative flex justify-start lg:justify-center mb-5 lg:mb-10">
+          <h2 className="text-[20px] lg:text-[32px] font-light text-black ml-5 lg:ml-0">{t(translations.aboutTitle)}</h2>
+          <Link to="/about" className="absolute right-5 top-1/2 -translate-y-1/2 text-[14px] lg:text-[16px] font-bold italic text-black hover:underline whitespace-nowrap">
+            {t(translations.aboutMore)}
+          </Link>
+        </div>
+        <div className="flex flex-row gap-4 lg:gap-5 items-start px-5 xl:px-[100px]">
+          <div className="flex-shrink-0">
+            <img src={getMediaUrl(aboutSettings?.image || '/team/fedor.jpg')} alt="Фёдор Ращевский" className="w-[105px] h-[125px] lg:w-[220px] lg:h-[240px] object-cover rounded-[5px]" />
+          </div>
+          <div className="flex-1 flex flex-col gap-[5px]">
+            <p className="text-[16px] lg:text-[20px] font-bold text-black leading-none">
+              {t({ ru: aboutSettings?.name_ru, en: aboutSettings?.name_en }) || t(translations.aboutDefaultName)}
+            </p>
+            <p className="text-[16px] lg:text-[20px] font-normal text-black">
+              {t({ ru: aboutSettings?.position_ru, en: aboutSettings?.position_en }) || t(translations.aboutDefaultPosition)}
+            </p>
+            <p className="text-[16px] lg:text-[20px] italic text-black">
+              {t({ ru: aboutSettings?.quote_ru, en: aboutSettings?.quote_en }) || t(translations.aboutDefaultQuote)}
+            </p>
+            <div className="mt-[10px] whitespace-pre-wrap">
+              <p className="text-[16px] lg:text-[20px] font-normal text-black">
+                {t({ ru: aboutSettings?.text_ru, en: aboutSettings?.text_en }) || t(translations.aboutDefaultText)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Интерьеры (проекты) */}
       <section id="projects" className="w-full py-0 mb-10 lg:mb-15">
@@ -467,7 +424,7 @@ const Home = () => {
                     <div key={rowIdx} className="flex justify-start mb-[10px]" style={{ gap: '10px' }}>
                       {items[0] && (
                         <div className="group relative overflow-hidden cursor-pointer" style={{ width: leftW }}>
-                          <img src={getImageUrl(items[0].image)} alt="project" className="w-full h-[220px] object-cover" />
+                          <img src={getMediaUrl(items[0].image)} alt="project" className="w-full h-[220px] object-cover" />
                           <div className="absolute inset-0 bg-black/50 flex flex-col justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4">
                             <div className="flex-1 flex items-center justify-center">
                               <span className="text-white text-[32px] font-bold text-center px-2">{t({ ru: items[0].title_ru, en: items[0].title_en })}</span>
@@ -481,7 +438,7 @@ const Home = () => {
                       )}
                       {items[1] && (
                         <div className="group relative overflow-hidden cursor-pointer" style={{ width: middleW }}>
-                          <img src={getImageUrl(items[1].image)} alt="project" className="w-full h-[220px] object-cover" />
+                          <img src={getMediaUrl(items[1].image)} alt="project" className="w-full h-[220px] object-cover" />
                           <div className="absolute inset-0 bg-black/50 flex flex-col justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4">
                             <div className="flex-1 flex items-center justify-center">
                               <span className="text-white text-[32px] font-bold text-center px-2">{t({ ru: items[1].title_ru, en: items[1].title_en })}</span>
@@ -495,7 +452,7 @@ const Home = () => {
                       )}
                       {items[2] && (
                         <div className="group relative overflow-hidden cursor-pointer" style={{ width: rightW }}>
-                          <img src={getImageUrl(items[2].image)} alt="project" className="w-full h-[220px] object-cover" />
+                          <img src={getMediaUrl(items[2].image)} alt="project" className="w-full h-[220px] object-cover" />
                           <div className="absolute inset-0 bg-black/50 flex flex-col justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4">
                             <div className="flex-1 flex items-center justify-center">
                               <span className="text-white text-[32px] font-bold text-center px-2">{t({ ru: items[2].title_ru, en: items[2].title_en })}</span>
@@ -518,32 +475,16 @@ const Home = () => {
                     const hasOneItem = pair.length === 1;
                     return (
                       <div key={pairIdx} className="flex gap-2">
-                        <div
-                          className={`group relative cursor-pointer overflow-hidden ${
-                            hasOneItem ? 'w-full' : isEvenRow ? 'flex-[2]' : 'flex-[1]'
-                          }`}
-                        >
-                          <img
-                            src={getImageUrl(pair[0].image)}
-                            alt="project"
-                            className="w-full h-[clamp(110px,15vw,220px)] object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
+                        <div className={`group relative cursor-pointer overflow-hidden ${hasOneItem ? 'w-full' : isEvenRow ? 'flex-[2]' : 'flex-[1]'}`}>
+                          <img src={getMediaUrl(pair[0].image)} alt="project" className="w-full h-[clamp(110px,15vw,220px)] object-cover transition-transform duration-300 group-hover:scale-105" />
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                             <span className="text-white text-[14px] font-bold text-center px-2">{t({ ru: pair[0].title_ru, en: pair[0].title_en })}</span>
                           </div>
                           <Link to={`/projects/${pair[0].id}`} className="absolute inset-0" />
                         </div>
                         {!hasOneItem && (
-                          <div
-                            className={`group relative cursor-pointer overflow-hidden ${
-                              isEvenRow ? 'flex-[1]' : 'flex-[2]'
-                            }`}
-                          >
-                            <img
-                              src={getImageUrl(pair[1].image)}
-                              alt="project"
-                              className="w-full h-[clamp(110px,15vw,220px)] object-cover transition-transform duration-300 group-hover:scale-105"
-                            />
+                          <div className={`group relative cursor-pointer overflow-hidden ${isEvenRow ? 'flex-[1]' : 'flex-[2]'}`}>
+                            <img src={getMediaUrl(pair[1].image)} alt="project" className="w-full h-[clamp(110px,15vw,220px)] object-cover transition-transform duration-300 group-hover:scale-105" />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                               <span className="text-white text-[14px] font-bold text-center px-2">{t({ ru: pair[1].title_ru, en: pair[1].title_en })}</span>
                             </div>
@@ -570,7 +511,7 @@ const Home = () => {
         </div>
         <div className="w-full my-5 lg:my-10">
           <div className="relative w-full h-[150px] lg:h-[330px] overflow-hidden">
-            <img src={settings?.promo_banner_image || '/promo-banner.jpg'} alt="Промо" className="w-full h-full object-cover" />
+            <img src={getMediaUrl(settings?.promo_banner_image || '/promo-banner.jpg')} alt="Промо" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/20" />
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-white text-[20px] lg:text-[32px] font-bold text-center px-4">
@@ -584,7 +525,7 @@ const Home = () => {
             <div key={service.id} className="w-full sm:w-[calc(50%-20px)] lg:w-[300px] min-h-[380px] bg-white rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] flex flex-col p-4">
               {service.icon && (
                 <div className="w-[50px] h-[50px] flex items-center justify-center mb-5 mx-auto">
-                  <img src={service.icon} alt={t({ ru: service.name_ru, en: service.name_en })} className="max-w-full max-h-full object-contain" />
+                  <img src={getMediaUrl(service.icon)} alt={t({ ru: service.name_ru, en: service.name_en })} className="max-w-full max-h-full object-contain" />
                 </div>
               )}
               <div className="flex flex-col flex-1">
@@ -633,13 +574,13 @@ const Home = () => {
                     <div className={`flex items-center ${idx % 2 === 0 ? 'justify-start' : 'justify-end'} gap-10`}>
                       {idx % 2 === 0 && (
                         <div className="w-[200px] h-[200px] flex-shrink-0 ml-[100px]">
-                          <img src={houseImages[Math.min(idx, houseImages.length - 1)]} alt="" className="w-full h-full object-contain rounded-[5px]" />
+                          <img src={getMediaUrl(houseImages[Math.min(idx, houseImages.length - 1)])} alt="" className="w-full h-full object-contain rounded-[5px]" />
                         </div>
                       )}
                       <div className={`relative w-full max-w-[990px] h-[240px] rounded-[5px] border border-black/25 flex items-center p-5 bg-transparent ${idx % 2 === 0 ? 'lg:ml-0' : 'lg:mr-0'}`}>
                         {review.photo && (
                           <div className="w-[350px] h-[200px] flex-shrink-0 mr-[30px]">
-                            <img src={review.photo} alt="Фото отзыва" className="w-full h-full object-contain rounded-[5px]" />
+                            <img src={getMediaUrl(review.photo)} alt="Фото отзыва" className="w-full h-full object-contain rounded-[5px]" />
                           </div>
                         )}
                         <div className="flex-1">
@@ -650,7 +591,7 @@ const Home = () => {
                           <p className="text-[16px] text-black leading-relaxed">{t({ ru: review.text_ru, en: review.text_en })}</p>
                         </div>
                         <div className="absolute top-5 right-5 flex gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
+                          {[1,2,3,4,5].map(star => (
                             <svg key={star} width="25" height="25" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={star <= review.rating ? "black" : "none"} fillOpacity={star <= review.rating ? 0.5 : 0} stroke="black" strokeOpacity={star <= review.rating ? 0 : 0.5} strokeWidth="0.5" />
                             </svg>
@@ -659,7 +600,7 @@ const Home = () => {
                       </div>
                       {idx % 2 !== 0 && (
                         <div className="w-[200px] h-[200px] flex-shrink-0 mr-[100px]">
-                          <img src={houseImages[Math.min(idx, houseImages.length - 1)]} alt="" className="w-full h-full object-contain rounded-[5px]" />
+                          <img src={getMediaUrl(houseImages[Math.min(idx, houseImages.length - 1)])} alt="" className="w-full h-full object-contain rounded-[5px]" />
                         </div>
                       )}
                     </div>
@@ -674,21 +615,17 @@ const Home = () => {
             {reviews.map((review) => (
               <div key={review.id} className="w-full bg-white rounded-[5px] border border-black/25 p-5">
                 <div className="flex gap-4">
-                  {review.photo && (
-                    <img src={review.photo} alt="" className="w-[35%] h-auto max-[640px]:aspect-square max-[640px]:object-cover rounded-[5px]" />
-                  )}
+                  {review.photo && <img src={getMediaUrl(review.photo)} alt="" className="w-[35%] h-auto max-[640px]:aspect-square max-[640px]:object-cover rounded-[5px]" />}
                   <div className={review.photo ? "flex-1 flex flex-col items-end" : "w-full flex flex-col items-end"}>
                     <div className="flex gap-1 mb-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
+                      {[1,2,3,4,5].map(star => (
                         <svg key={star} width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={star <= review.rating ? "black" : "none"} fillOpacity={star <= review.rating ? 0.5 : 0} stroke="black" strokeOpacity={star <= review.rating ? 0 : 0.5} strokeWidth="0.5" />
                         </svg>
                       ))}
                     </div>
                     <h3 className="text-[16px] font-bold text-black text-right">{t({ ru: review.client_name_ru, en: review.client_name_en })}</h3>
-                    {review.project_ru && (
-                      <p className="text-[16px] italic text-black text-right mt-1">{t({ ru: review.project_ru, en: review.project_en })}</p>
-                    )}
+                    {review.project_ru && <p className="text-[16px] italic text-black text-right mt-1">{t({ ru: review.project_ru, en: review.project_en })}</p>}
                   </div>
                 </div>
                 <p className="text-[16px] text-black leading-relaxed mt-4">{t({ ru: review.text_ru, en: review.text_en })}</p>
@@ -714,29 +651,14 @@ const Home = () => {
                 <div className="hidden md:block">
                   <div className={`flex flex-col ${isImageLeft ? 'md:flex-row' : 'md:flex-row-reverse'} items-center gap-10`}>
                     <div className="w-full md:w-1/2 flex-shrink-0">
-                      <img
-                        src={getImageUrl(item.image)}
-                        alt={t({ ru: item.title_ru, en: item.title_en })}
-                        className="w-full h-[400px] object-cover"
-                      />
+                      <img src={getMediaUrl(item.image)} alt={t({ ru: item.title_ru, en: item.title_en })} className="w-full h-[400px] object-cover" />
                     </div>
                     <div className="flex-1 flex flex-col justify-start px-5">
                       <div className="w-full max-w-[600px] mx-auto">
-                        <h3 className="text-[20px] font-bold text-black mb-5">
-                          {t({ ru: item.title_ru, en: item.title_en })}
-                        </h3>
-                        <p className="text-[20px] italic text-black mb-5">
-                          {new Date(item.date).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </p>
-                        <p className="text-[20px] text-black mb-5">
-                          {t({ ru: item.content_ru, en: item.content_en })}
-                        </p>
-                        <Link
-                          to={`/news/${item.id}`}
-                          className="text-[16px] font-bold italic text-black hover:underline inline-block focus:outline-none focus:ring-0"
-                        >
-                          {t(translations.newsReadMore)}
-                        </Link>
+                        <h3 className="text-[20px] font-bold text-black mb-5">{t({ ru: item.title_ru, en: item.title_en })}</h3>
+                        <p className="text-[20px] italic text-black mb-5">{new Date(item.date).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                        <p className="text-[20px] text-black mb-5">{t({ ru: item.content_ru, en: item.content_en })}</p>
+                        <Link to={`/news/${item.id}`} className="text-[16px] font-bold italic text-black hover:underline inline-block focus:outline-none focus:ring-0">{t(translations.newsReadMore)}</Link>
                       </div>
                     </div>
                   </div>
@@ -744,28 +666,13 @@ const Home = () => {
                 <div className="block md:hidden px-5">
                   <div className="flex flex-col">
                     <div className="mb-[10px]">
-                      <h3 className="text-[16px] font-bold text-black mb-[10px]">
-                        {t({ ru: item.title_ru, en: item.title_en })}
-                      </h3>
-                      <p className="text-[16px] italic text-black mb-[2px]">
-                        {new Date(item.date).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </p>
-                      <p className="text-[16px] text-black mb-[10px]">
-                        {t({ ru: item.content_ru, en: item.content_en })}
-                      </p>
-                      <Link
-                        to={`/news/${item.id}`}
-                        className="text-[16px] font-bold italic text-black hover:underline inline-block focus:outline-none focus:ring-0"
-                      >
-                        {t(translations.newsReadMore)}
-                      </Link>
+                      <h3 className="text-[16px] font-bold text-black mb-[10px]">{t({ ru: item.title_ru, en: item.title_en })}</h3>
+                      <p className="text-[16px] italic text-black mb-[2px]">{new Date(item.date).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                      <p className="text-[16px] text-black mb-[10px]">{t({ ru: item.content_ru, en: item.content_en })}</p>
+                      <Link to={`/news/${item.id}`} className="text-[16px] font-bold italic text-black hover:underline inline-block focus:outline-none focus:ring-0">{t(translations.newsReadMore)}</Link>
                     </div>
                     <div className="w-full">
-                      <img
-                        src={getImageUrl(item.image)}
-                        alt={t({ ru: item.title_ru, en: item.title_en })}
-                        className="w-full h-[150px] object-cover"
-                      />
+                      <img src={getMediaUrl(item.image)} alt={t({ ru: item.title_ru, en: item.title_en })} className="w-full h-[150px] object-cover" />
                     </div>
                   </div>
                 </div>
@@ -817,18 +724,10 @@ const Home = () => {
       {/* Модальное окно благодарности */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div
-            className="relative bg-white rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] flex flex-col justify-center items-center text-center p-5
-                       w-[300px] h-[200px] sm:w-[600px] sm:h-[400px]"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative bg-white rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] flex flex-col justify-center items-center text-center p-5 w-[300px] h-[200px] sm:w-[600px] sm:h-[400px]" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setShowModal(false)} className="absolute top-2 right-2 text-gray-500 hover:text-black text-2xl focus:outline-none focus:ring-0">×</button>
-            <p className="text-[20px] sm:text-[32px] font-light text-black mb-3 sm:mb-5">
-              {t(translations.modalTitle)}
-            </p>
-            <p className="text-[14px] sm:text-[20px] italic font-light text-black">
-              {t(translations.modalText)}
-            </p>
+            <p className="text-[20px] sm:text-[32px] font-light text-black mb-3 sm:mb-5">{t(translations.modalTitle)}</p>
+            <p className="text-[14px] sm:text-[20px] italic font-light text-black">{t(translations.modalText)}</p>
           </div>
         </div>
       )}

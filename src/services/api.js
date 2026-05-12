@@ -24,9 +24,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    // Если это не запрос на обновление токена и статус 401
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Если уже идёт обновление, ставим запрос в очередь
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -42,7 +40,6 @@ api.interceptors.response.use(
       isRefreshing = true;
       const refreshToken = localStorage.getItem('refresh_token');
       if (!refreshToken) {
-        // Нет refresh-токена – выходим
         window.location.href = '/login';
         return Promise.reject(error);
       }
@@ -70,13 +67,20 @@ api.interceptors.response.use(
   }
 );
 
-// Устанавливаем токен при инициализации, если он есть
 const token = localStorage.getItem('access_token');
 if (token) {
   api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
 
-// == API ФУНКЦИИ ==
+// === НОВАЯ ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ПОЛНОГО URL ИЗОБРАЖЕНИЙ ===
+export const getMediaUrl = (mediaPath) => {
+  if (!mediaPath) return '';
+  if (mediaPath.startsWith('http')) return mediaPath;
+  const base = 'https://offcon-backend.onrender.com';
+  return `${base}${mediaPath.startsWith('/') ? mediaPath : '/' + mediaPath}`;
+};
+// =====================================================
+
 export const getProjects = (params) => api.get('projects/', { params });
 export const getServices = () => api.get('services/');
 export const getNews = () => api.get('news/');
@@ -93,7 +97,6 @@ export const getReviewQuote = () => api.get('review-quote/');
 export const getTeamMembers = () => api.get('team-members/');
 export const getFAQ = () => api.get('faq/');
 
-// Авторизация
 export const login = (username, password) => api.post('/token/', { username, password });
 export const register = (userData) => api.post('/register/', userData);
 export const getProfile = () => api.get('/user/me/');
